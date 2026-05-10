@@ -1,5 +1,34 @@
 
 
+
+
+
+
+INTRO_BOOT		macro
+introSplash
+				lda #1
+				sta Demo_Mode
+			
+				
+
+				endm
+
+RESTART			macro
+				;lda #$20
+				;sta shipXpos
+				lda #$0
+				sta shipYpos
+				sta shipXpos
+				sta In_Alley
+				sta Ship_Dead
+				ldb #LEFT
+				stb shipdir
+				
+
+				endm
+
+
+
 ;{{{ DRAW_LINE_WALLS
 ALLEYWALL_Y         EQU        60 
 ALLEYHEIGHT         EQU        17 
@@ -132,12 +161,60 @@ DRAW_SHIP			macro
 					lda #127
 					sta VIA_t1_cnt_lo ;controls 'scale'
 			
-					lda #shipYpos
+					lda shipYpos
+					
 					ldx #bulletYpos_t
 					lda a,x
-					ldb #shipXpos
+					ldb shipXpos
+					
 					jsr Moveto_d
+					
+					;test if we are dead
+					lda #127
+					sta VIA_t1_cnt_lo
+					lda Ship_Dead
+					bne _is_dead
+					bra scale_done
+					
+_is_dead
+					ldb Ship_Dead_Anim
+					bne ship_shrink
+					lda Ship_Dead_Cnt
+					inc Ship_Dead_Cnt
+					inc Ship_Dead_Cnt
+					bra ship_grow
+ship_shrink
+					lda Ship_Dead_Cnt
+					dec Ship_Dead_Cnt
+					dec Ship_Dead_Cnt
+ship_grow
+					
+					sta VIA_t1_cnt_lo
+scale_done			
+					lda Ship_Dead_Cnt
+					bmi change_dir
+					cmpa #126
+					bne shitballs
+					clr Ship_Dead
+					clr Ship_Dead_Cnt
+					clr shipXpos
+					clr In_Alley
+change_dir
+					lda Ship_Dead_Cnt
+					cmpa #0
+					beq dontplaysound
+					;jsr SFX_Undead
+dontplaysound      
+					clr shipXpos
+					clr Ship_Dead_Anim
+					clr Ship_Dead_Cnt
+					;CHECK_GAMEOVER
+shitballs
+					ldx #ShipL_nomode
+					ldb shipdir
+					beq _donuthin1
 					ldx #ShipR_nomode
+_donuthin1
 					jsr Draw_VLc
 					
 					endm

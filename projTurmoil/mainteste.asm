@@ -51,7 +51,8 @@ DRAW_LINE_D_PAT     macro
 			 FCB 0
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+            INTRO_BOOT
+		    RESTART
 
 main
 			jsr Wait_Recal
