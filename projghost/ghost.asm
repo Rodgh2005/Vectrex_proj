@@ -231,9 +231,7 @@ moveleft_
 			SUBA speed       			; o inimigo esta a cair (baixo)
 			;ADDA speed
 			STA enemy0x
-			JSr Random_3
-			
-			LDB #-60					;distancia onde chega o inimigo
+			LDB #-20					;distancia onde chega o inimigo
 			CMPB enemy0x
 	;	lda enemy0x
 	;	cmpa #-78
@@ -249,14 +247,15 @@ moveright_
             lda enemy0x
 			ADDA speed   
 			STA enemy0x
-			jsr Random_3
-			cmpa enemy0x
-			bgt dir1
+		;	cmpa enemy0x
+		;	bgt dir1
+			
+			
 			lda enemy0x
-			cmpa #40
+			cmpa #60
 			bgt dir1
 			
-			
+
 			
 			;lbeq teste2
 			;LDB #-$7A					;distancia onde chega o inimigo
