@@ -5,11 +5,6 @@
 ;https://6502.org/forum/viewtopic.php?t=2325&start=15
 
 
-
-		INCLUDE "include/macros.asm"
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 Dot_d			EQU			0xF2C3
 Dot_here		EQU			0xF2C5
 Dot_ix_b		EQU			0xF2BE
@@ -18,7 +13,7 @@ Dot_List		EQU			0xF2D5
 Dot_List_Reset	EQU		0xF2DE
 
 Vec_Dot_Dwell	EQU		0xC828
-Vec_Misc_Count	EQU		0xC823	
+Vec_Misc_Count	EQU		0xC823
 Delay3			EQU		    0xF56D
 VIA_t1_cnt_lo	EQU		0xD006
 
@@ -64,18 +59,16 @@ Draw_VLp                  equ     0xF410   ;pattern y x pattern y x ... 0x01
 ;ram starts at $C880 til $CBEA
 
 XLIM 			EQU #80
-YLIM             EQU #122;122
+YLIM             EQU #122
 XMan            EQU $C880
 YMan            EQU XMan +1
-Xv		 		EQU  YMan +1
-Yv                 EQU  Xv +1
+Xv				EQU  YMan +1
+Yv                EQU  Xv +1
 dl1                EQU  Yv +1
 dl2                EQU  dl1 +1
 temp_string   EQU  dl2 +1
 tempX           EQU temp_string +1
 Objects          EQU tempX + 12
-Objectspoints  EQU Objects +12
-level				EQU Objectspoints +1
 User              EQU  $CAB9
 
 
@@ -147,76 +140,70 @@ main
          LDA #0
 		 STA XMan
 		 STA YMan
-		 STA Yv			;Yv=0
+		 STA Yv
 		 LDA #1
-		 STA Xv			;Xv=1
-		 STA level
+		 STA Xv
 		 
-		; LDA #1			
-		; STA dl1			;dl1 =1
-		; LDA #2
-		; STA dl40			;dl2 = 40
+		 LDA #1
+		 STA dl1
+		 LDA #40
+		 STA dl2
+		 
 		 ;move dot list to RAM (can´t changed while in ROM)
-		 LDB #79 ;79														;carrega o registo B com 79 como inicio .O ciclo vai correr 80 vezes
-         LDX #Objects														;Carrega registo de indice X com o endereço de memoria do destino (Objects)
-         LDY #ObjectList													;Carrega o registo de indice Y com o endereço de memoria  base  da origem (ObjectList)
+		 LDB #79 ;79
+         LDX #Objects
+         LDY #ObjectList
 		 
 memloop
-		LDA B,Y  																;Carrega o Registo A com o dado contido no endereço indexado (Origem Y + Desvio B)
-		STA B,X																;Guarda o valor do registo A no endereço indexado (destino X + desvio B)
-		DECB																	;decrementa o registo B em 1 unidade
-		BPL memloop														;(Branch if Plus) desvia o programa de volta para memloop se o resultado for positivo ou 0 
-																					;o ciclo termina assim que B passa de 0 para -1 ($FF)
-																					
-																					
-;----------------------------------começa aqui o loop (ciclo)----------------------------------------------------------------------------------------------------------------------------
+		LDA B,Y
+		STA B,X
+		DECB
+		BPL memloop
+		
 loop:
 
-		JSR Wait_Recal														;chama rotina da Bios limpa os integradores do vetor e reseta o feixe de eletroes para o centro (0,0)
-		LDX #Objects														;carrega o registo X com o endereço base da tabela de objectos na RAM ;base address of dotlist in RAM, each entry is a byte
-		LDY ,X++																;esta é uma instruçao pos-incrementada. Ela lê 2 bytes (uma word) do endereço apontado por X e coloca-os no registo Y. Depois, avança o registo X em 2 Bytes.
-																					;Number of Objects into Y, Base address of Object list in RAM into X also increment X by a word so on next item																					;O registo Y tem 16 bits. lse a lista começa com o numero objectos (1 byte ) o LDY vai ler o numero de objectos E o primeiro byte de dados juntos. Se o numero de objectos for apenas 1 byte, deve usar LDA ,X+ .
-		STX tempX															; Guarda o endereço atualizado de X  na variavel temporaria tempX.
-																					;Store X in temporary variable because a lot of BIOS routines use X register
+		JSR Wait_Recal
+		LDX #Objects		;base address of dotlist in RAM, each entry is a byte
+		LDY ,X++				;Number of Objects into Y, Base address of Object list in RAM into X also increment X by a word so on next item
+		STX tempX			;Store X in temporary variable because a lot of BIOS routines use X register
 		
 ListLoop:
 ;-------------------move objects
 ;-------------------X Limits
-		LDX  tempX															;Recupera o ponteiro atual da lista de objectos que foi guardada na rotina anterior
-		LDA ,X 		;xposition of object to A							;Carrega a posiçao X actual do objecto para o registo A
-		ADDA 2,X  ;add x-vector to A									;Soma a velocidade /vector X (guardado 2 bytes a frente na memoria) a posicao atual
-		CMPA #XLIM  ;check if hits right  side of screen		;compara a nova posiçao com o limite direito do ecra (XLIM)
-		BLE chk2																;se a posicao for menor ou igual (Branch if Less or Equal)ao limite, o objecto esta dentro do ecran a direita. Salta para verificar o lado esquerdo (chk2)
-		LDA #XLIM															;se passou o limite, força a posicao a fixar-se exatamente na borda da direita (XLIM ) e salta para inverter o vetor
+		LDX  tempX
+		LDA ,X 		;xposition of object to A
+		ADDA 2,X  ;add x-vector to A
+		CMPA #XLIM  ;check if hits right  side of screen
+		BLE chk2
+		LDA #XLIM
 		BRA SetX
 chk2:
-		CMPA #-XLIM ;check if hits left side of screen           ;Compara nova posicao com o limite esquerdo do ecran (-XLIM)
-		BGE fin																	 ;Se for maior ou igual (Branch if Greater or Equal), o objecto esta dentro dos limites. Salta para o fim para guardar posicao.
-		LDA #-XLIM															 ; se ultrapassou o limite esquerdo , força a posicao  a fixar na borda esquerda(-XLIM)
+		CMPA #-XLIM ;check if hits left side of screen
+		BGE fin
+		LDA #-XLIM
 SetX:
-		NEG 2,X	;two's complement X-vector (negate it)	 ;Inverte sinal do vetor de movimento (no byte 2,X) usando o complemento para dois. Isto faz o objeto mudar de direçao (ex : de +2 para -2 )	
+		NEG 2,X	;two's complement X-vector (negate it)
 fin:
-		STA ,X ;store new X position									 :Guarda a posiçao X final actualizada de volta na memoria do objeto.			
+		STA ,X ;store new X position
 		
-;--------Y limits-------------------------------------------------------------
-
-		LDA 1,X   ; y position of object in A							 ;Carrega a posiçao Y atual do objeto (guardada no desvio 1)	
-		ADDA 3,X ;add yv to y position								 ;Soma a velocidade/vetor Y (Guardado no desvio 3) a posicao atual.		
-		CMPA  #YLIM ;check if hits top of screen					 ;Verifica se o objeto ultrapassou o limite superior do ecran. senao salta para testar o limite inferior
+;--------Y limits
+		LDA 1,X   ; y position of object in A
+		ADDA 3,X ;add yv to y position
+		CMPA  #YLIM ;check if hits top of screen
 		BLE chk2y
-		LDA #YLIM																
+		LDA #YLIM
 		BRA SetY
 chk2y:
-		CMPA #-YLIM		;check if hits bottom of screen     ;verifica se objeto ultrapassou o limite inferior. se tiver dentro dos limites, salta para o fim
+		CMPA #-YLIM		;check if hits bottom of screen
 		BGE finy
 		LDA #-YLIM
 SetY:
-		NEG 3,X	;two 's complement Xv                            ;inverte o sinal do vetor Y (no desvio 3) caso tenha batido em cima ou em baixo, criando o efeito de ricochete vertical
+		NEG 3,X	;two 's complement Xv
 finy:
-		STA 1,X																;guarda nova posicao Y na memoria	
+		STA 1,X
 		
-		LDX tempX															;recarrega o ponteiro do objeto para o registo X
-		LDA #$7F  ;Set scale factor to $7F							;define o valor da escala global no maximo	
+		LDX tempX
+		LDA #$7F  ;Set scale factor to $7F
 		STA <VIA_t1_cnt_lo
 
 ;----------------Draw Dots
@@ -241,8 +228,8 @@ finy:
 		;LDA     #$05            ;Init dot dwell (brightness)
                 ;STA     <Vec_Dot_Dwell 
 
-				JSR	Reset0Ref
-				LDX	tempX
+		JSR	Reset0Ref
+		LDX	tempX
 		
                 LDA     1,X                      ; set y
                 LDB     ,X                      ; set x
@@ -253,13 +240,13 @@ finy:
                 STA     VIA_t1_cnt_lo           ; move to time 1 lo, this
                                                 ; means scaling
 	
-			    JSR Intensity_5F
+			JSR Intensity_5F
                 JSR     Intensity_5F            ; Sets the intensity of the
                                                 ; vector beam to $5f
-                LDX    #square_line_list ;#Ghost_UpDow      ; load the address of the to be //#square_line_list
+            LDX     #Ghost_UpDow      ; load the address of the to be //#square_line_list
                                                 ; drawn vector list to X
-                JSR     Draw_VLc                ; draw the shape 
-			; JSR    Draw_VLp
+             ;   JSR     Draw_VLc                ; draw the shape 
+			 JSR    Draw_VLp
                  
 ;------------
 		LDX	tempX			;Retrieve X
@@ -343,11 +330,11 @@ tlsExit2:
 
 ObjectList:
                 
-		 ;FCB 0,20                           ; number of objects (word, 2 bytes)  3objectos
-		 FCB 0,1  
-         FCB  2,2,2,2		;  FCB  20,-20,-2,2
-		; FCB  -20,-10,1,-2
-		; FCB 10,10,-1,1
+		 ;FCB 0,20                           ; number of objects (word, 2 bytes)
+		 FCB 0,3  
+         FCB  20,-20,-2,2
+		 FCB  -20,-10,1,-2
+		 FCB 10,10,-1,1
 		; FCB -20,20,2,-1
 		; FCB -40,30,3,1
 		; FCB 40,-30,-2,-3
@@ -366,23 +353,23 @@ ObjectList:
 ;		 FCB 30,30,-3,-1
 ;		 FCB -28,-26,-2,-2
 
-;ghost_scale EQU  2;35		 
+ghost_scale EQU 35		 
 		 
-;Ghost_UpDow:
+Ghost_UpDow:
 
-;    FCB $FF, 5*ghost_scale, 0       ; Desenha lateral altera movimento
-;    FCB $FF, 2*ghost_scale, 1*ghost_scale    ; Curva topo 1
-;    FCB $FF, 1*ghost_scale, 2*ghost_scale    ; Curva topo 2
-;    FCB $FF, -1*ghost_scale, 2*ghost_scale   ; Curva topo 3
-;    FCB $FF, -2*ghost_scale, 1*ghost_scale   ; Curva topo 4
-;    FCB $FF, -5*ghost_scale, -0      ; Lateral oposta  3 altera movimento
+    FCB $FF, 5*ghost_scale, 0       ; Desenha lateral altera movimento
+    FCB $FF, 2*ghost_scale, 1*ghost_scale    ; Curva topo 1
+    FCB $FF, 1*ghost_scale, 2*ghost_scale    ; Curva topo 2
+    FCB $FF, -1*ghost_scale, 2*ghost_scale   ; Curva topo 3
+    FCB $FF, -2*ghost_scale, 1*ghost_scale   ; Curva topo 4
+    FCB $FF, -5*ghost_scale, -0      ; Lateral oposta  3 altera movimento
     ; --- Base Ziguezague ---
-;    FCB $FF, 1*ghost_scale, -1*ghost_scale   
-;    FCB $FF, -1*ghost_scale, -1*ghost_scale
-;    FCB $FF, 1*ghost_scale, -1*ghost_scale
-;    FCB $FF, -1*ghost_scale, -1*ghost_scale
-;    FCB $FF, 1*ghost_scale, -1*ghost_scale
-;    FCB $FF, -1*ghost_scale, -1*ghost_scale  ; Fecha corpo na origem (0,0)
+    FCB $FF, 1*ghost_scale, -1*ghost_scale   
+    FCB $FF, -1*ghost_scale, -1*ghost_scale
+    FCB $FF, 1*ghost_scale, -1*ghost_scale
+    FCB $FF, -1*ghost_scale, -1*ghost_scale
+    FCB $FF, 1*ghost_scale, -1*ghost_scale
+    FCB $FF, -1*ghost_scale, -1*ghost_scale  ; Fecha corpo na origem (0,0)
 
     ; --- Salto para os Olhos (Sem linha!) ---
  ;   FCB $00, 6*ghost_scale, 2*ghost_scale    ; $00 = Move sem desenhar
@@ -391,22 +378,20 @@ ObjectList:
  ;   FCB $00, 0, 2*ghost_scale                ; Move para o olho 2
  ;   FCB $FF, 1, 0                            ; Desenha olho 2
     
- ;   FCB $01                                  ; Fim da lista para a BIOS		 
+    FCB $01                                  ; Fim da lista para a BIOS		 
 		 
 
 ;sprite quadrado para teste		 
-SPRITE_BLOW_UP EQU 35                    
-square_line_list:
-                FCB 3                           ; number of vectors - 1
-                FCB  2*SPRITE_BLOW_UP,  0*SPRITE_BLOW_UP
-     	        FCB  0*SPRITE_BLOW_UP,  2*SPRITE_BLOW_UP
-		        FCB  -2*SPRITE_BLOW_UP,  0*SPRITE_BLOW_UP
-		        FCB  0*SPRITE_BLOW_UP,  -2*SPRITE_BLOW_UP
+;SPRITE_BLOW_UP EQU 35                    
+;square_line_list:
+ ;                FCB 3                           ; number of vectors - 1
+  ;               FCB  2*SPRITE_BLOW_UP,  0*SPRITE_BLOW_UP
+;		        FCB  0*SPRITE_BLOW_UP,  2*SPRITE_BLOW_UP
+;		        FCB  -2*SPRITE_BLOW_UP,  0*SPRITE_BLOW_UP
+;		       FCB  0*SPRITE_BLOW_UP,  -2*SPRITE_BLOW_UP
   
 
-max_enemys_t        fcb      -1,1,4,5,5,6,6,7,7,7,7,7     ; maximum number of occupied alleys per level, repeat after 6 
-										;0,1,2,3,4,5,6,7,8,9
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 hello_world_string
 			 FCB "TESTE RODRIGO",0x80

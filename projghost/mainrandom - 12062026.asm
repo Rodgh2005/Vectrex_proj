@@ -5,11 +5,6 @@
 ;https://6502.org/forum/viewtopic.php?t=2325&start=15
 
 
-
-		INCLUDE "include/macros.asm"
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 Dot_d			EQU			0xF2C3
 Dot_here		EQU			0xF2C5
 Dot_ix_b		EQU			0xF2BE
@@ -18,7 +13,7 @@ Dot_List		EQU			0xF2D5
 Dot_List_Reset	EQU		0xF2DE
 
 Vec_Dot_Dwell	EQU		0xC828
-Vec_Misc_Count	EQU		0xC823	
+Vec_Misc_Count	EQU		0xC823
 Delay3			EQU		    0xF56D
 VIA_t1_cnt_lo	EQU		0xD006
 
@@ -67,15 +62,14 @@ XLIM 			EQU #80
 YLIM             EQU #122;122
 XMan            EQU $C880
 YMan            EQU XMan +1
-Xv		 		EQU  YMan +1
-Yv                 EQU  Xv +1
+Xv				EQU  YMan +1
+Yv                EQU  Xv +1
 dl1                EQU  Yv +1
 dl2                EQU  dl1 +1
 temp_string   EQU  dl2 +1
 tempX           EQU temp_string +1
 Objects          EQU tempX + 12
 Objectspoints  EQU Objects +12
-level				EQU Objectspoints +1
 User              EQU  $CAB9
 
 
@@ -150,7 +144,6 @@ main
 		 STA Yv			;Yv=0
 		 LDA #1
 		 STA Xv			;Xv=1
-		 STA level
 		 
 		; LDA #1			
 		; STA dl1			;dl1 =1
@@ -175,7 +168,8 @@ loop:
 		JSR Wait_Recal														;chama rotina da Bios limpa os integradores do vetor e reseta o feixe de eletroes para o centro (0,0)
 		LDX #Objects														;carrega o registo X com o endereço base da tabela de objectos na RAM ;base address of dotlist in RAM, each entry is a byte
 		LDY ,X++																;esta é uma instruçao pos-incrementada. Ela lê 2 bytes (uma word) do endereço apontado por X e coloca-os no registo Y. Depois, avança o registo X em 2 Bytes.
-																					;Number of Objects into Y, Base address of Object list in RAM into X also increment X by a word so on next item																					;O registo Y tem 16 bits. lse a lista começa com o numero objectos (1 byte ) o LDY vai ler o numero de objectos E o primeiro byte de dados juntos. Se o numero de objectos for apenas 1 byte, deve usar LDA ,X+ .
+																					;Number of Objects into Y, Base address of Object list in RAM into X also increment X by a word so on next item
+																					;O registo Y tem 16 bits. lse a lista começa com o numero objectos (1 byte ) o LDY vai ler o numero de objectos E o primeiro byte de dados juntos. Se o numero de objectos for apenas 1 byte, deve usar LDA ,X+ .
 		STX tempX															; Guarda o endereço atualizado de X  na variavel temporaria tempX.
 																					;Store X in temporary variable because a lot of BIOS routines use X register
 		
@@ -241,8 +235,8 @@ finy:
 		;LDA     #$05            ;Init dot dwell (brightness)
                 ;STA     <Vec_Dot_Dwell 
 
-				JSR	Reset0Ref
-				LDX	tempX
+		JSR	Reset0Ref
+		LDX	tempX
 		
                 LDA     1,X                      ; set y
                 LDB     ,X                      ; set x
@@ -404,9 +398,7 @@ square_line_list:
 		        FCB  0*SPRITE_BLOW_UP,  -2*SPRITE_BLOW_UP
   
 
-max_enemys_t        fcb      -1,1,4,5,5,6,6,7,7,7,7,7     ; maximum number of occupied alleys per level, repeat after 6 
-										;0,1,2,3,4,5,6,7,8,9
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 hello_world_string
 			 FCB "TESTE RODRIGO",0x80
